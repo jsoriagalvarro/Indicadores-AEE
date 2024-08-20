@@ -1,27 +1,28 @@
 import streamlit as st
 import pyodbc
 import pandas as pd
-import plotly.graph_objs as go
-from io import BytesIO
-
+ 
+# Obtener credenciales desde el archivo de secretos
+db_config = st.secrets["database"]
+ 
 # Función para conectarse a la base de datos
 def get_db_connection():
     conn = pyodbc.connect(
-        'DRIVER={ODBC Driver 18 for SQL Server};'
-        'SERVER=aee-indicadores.cby2gi2immos.us-east-2.rds.amazonaws.com;'
-        'DATABASE=EconomicIndicators;'
-        'UID=AEE_VPD;'
-        'PWD=Succesion2026;'
+        f'DRIVER={{ODBC Driver 18 for SQL Server}};'
+        f'SERVER={db_config["server"]};'
+        f'DATABASE={db_config["database"]};'
+        f'UID={db_config["username"]};'
+        f'PWD={db_config["password"]};'
         'TrustServerCertificate=yes;'
         'Encrypt=yes;'
     )
     return conn
-
+ 
 # Función para obtener los datos de la base de datos
 def get_data(country_id, indicator_ids):
     if not indicator_ids:
         return pd.DataFrame()  # Devolver un DataFrame vacío si no hay indicadores seleccionados
-
+ 
     conn = get_db_connection()
     query = f"""
     SELECT Date, Value, IndicatorID 
