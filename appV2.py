@@ -1,6 +1,7 @@
 import streamlit as st
 import pyodbc
 import pandas as pd 
+import plotly.graph_objs as go
 
 # Obtener credenciales desde Streamlit secrets
 db_config = st.secrets["database"]
