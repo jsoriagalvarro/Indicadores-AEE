@@ -1,10 +1,9 @@
 import streamlit as st
 import pyodbc
-import pandas as pd
- 
-# Obtener credenciales desde el archivo de secretos
+
+# Obtener credenciales desde Streamlit secrets
 db_config = st.secrets["database"]
- 
+
 # Función para conectarse a la base de datos
 def get_db_connection():
     conn = pyodbc.connect(
