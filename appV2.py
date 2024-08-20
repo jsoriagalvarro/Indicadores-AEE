@@ -1,0 +1,318 @@
+import streamlit as st
+import pyodbc
+import pandas as pd
+import plotly.graph_objs as go
+from io import BytesIO
+
+# Función para conectarse a la base de datos
+def get_db_connection():
+    conn = pyodbc.connect(
+        'DRIVER={ODBC Driver 18 for SQL Server};'
+        'SERVER=aee-indicadores.cby2gi2immos.us-east-2.rds.amazonaws.com;'
+        'DATABASE=EconomicIndicators;'
+        'UID=AEE_VPD;'
+        'PWD=Succesion2026;'
+        'TrustServerCertificate=yes;'
+        'Encrypt=yes;'
+    )
+    return conn
+
+# Función para obtener los datos de la base de datos
+def get_data(country_id, indicator_ids):
+    if not indicator_ids:
+        return pd.DataFrame()  # Devolver un DataFrame vacío si no hay indicadores seleccionados
+
+    conn = get_db_connection()
+    query = f"""
+    SELECT Date, Value, IndicatorID 
+    FROM EconomicData 
+    WHERE CountryID = {country_id} 
+    AND IndicatorID IN ({','.join(map(str, indicator_ids))})
+    ORDER BY Date
+    """
+    data = pd.read_sql(query, conn)
+    conn.close()
+    return data
+
+# Función para descargar datos en formato Excel
+def download_excel(data):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        data.to_excel(writer, index=False, sheet_name='Sheet1')
+    output.seek(0)
+    return output
+
+# Configuración de la página de Streamlit
+st.set_page_config(page_title="Interfaz - AEE", layout="wide")
+
+# Sidebar para seleccionar opciones
+st.sidebar.title("Configuración")
+page = st.sidebar.radio("Seleccione una página:", ["Home", "Mesa de trabajo Económica"])
+
+# Ruta del logo
+logo_path = "estrellafon_transparent.png"
+
+# Página Home
+if page == "Home":
+    col1, col2 = st.columns([1, 8])
+    with col1:
+        st.image(logo_path, width=80)
+    with col2:
+        st.markdown("<h1 style='text-align: left;'>Interfaz - AEE</h1>", unsafe_allow_html=True)
+    st.write("Esta es la página de inicio de la aplicación donde puedes describir la funcionalidad de la app.")
+
+# Página Mesa de trabajo Económica
+if page == "Mesa de trabajo Económica":
+    col1, col2 = st.columns([1, 8])
+    with col1:
+        st.image(logo_path, width=80)
+    with col2:
+        st.markdown("<h1 style='text-align: left;'>Mesa de trabajo Económica</h1>", unsafe_allow_html=True)
+
+    # Selección de país
+    country_options = {
+        "Argentina": 1,
+        "Bolivia": 2,
+        "Brasil": 3,
+        "Uruguay": 4,
+        "Paraguay": 5
+    }
+    country = st.sidebar.selectbox("Seleccione el país:", options=list(country_options.keys()))
+    country_id = country_options[country]
+
+    # Selección de indicadores
+    indicator_options = {
+        "Inflación Interanual": 1,
+        "Inflación Mensual": 2,
+        "Inflación Alimentos Interanual": 3,
+        "Inflación No alimentos Interanual": 4,
+        "Inflación Alimentos Mensual": 5,
+        "Inflación No alimentos Mensual": 6,
+        "Exportaciones": 7,
+        "Importaciones": 8,
+        "Balanza Comercial": 9,
+        "Riesgo País": 10,
+        "Tipo de Cambio Oficial": 11,
+        "Tipo de Cambio Paralelo": 12,
+        "Desempleo": 13,
+        "Reservas Internacionales Netas": 14,
+        "Crecimiento del PIB": 15,
+        "Tasa de Política Monetaria": 16,
+        "Índice Mensual de Actividad Económica (IMAE)": 17,
+        "Variacion salario nominal": 18,
+        "Estimador mensual de actividad económica (EMAE)": 19,
+        "Indicador Mensual de la Actividad Económica del Paraguay (IMAEP)": 20,
+        "Inflación subyacente (Mensual)": 21,
+        "Variación Interanual IMAE": 22,
+        "IMAE Desestacionalizado": 23,
+        "Variación Interanual IMAE Desest.": 24,
+        "IMAE Tendencia Ciclo": 25,
+        "Variación Tendencia Ciclo": 26
+    }
+
+    selected_indicators = st.sidebar.multiselect("Seleccione los indicadores:", options=list(indicator_options.keys()))
+    indicator_ids = [indicator_options[indicator] for indicator in selected_indicators]
+
+    if indicator_ids:
+        # Obtener los datos sin filtrar por fechas
+        data = get_data(country_id, indicator_ids)
+
+        if not data.empty:
+            # Selección de tipo de gráfico por indicador
+            chart_type_by_indicator = {}
+            chart_type_options = ["Línea", "Área", "Barras agrupadas", "Barras apiladas", "Scatter", "Histograma"]
+            for indicator in selected_indicators:
+                chart_type_by_indicator[indicator] = st.sidebar.selectbox(f"Seleccione el tipo de gráfico para {indicator}:",
+                                                                          options=chart_type_options,
+                                                                          key=f"chart_type_{indicator}")
+
+            # Selección de colores para cada serie
+            colors = {}
+            for indicator in selected_indicators:
+                colors[indicator] = st.sidebar.color_picker(f"Seleccione el color para {indicator}:", "#00B4D8")
+
+            # Opción para mostrar etiquetas de datos
+            show_data_labels = st.sidebar.checkbox("Mostrar etiquetas de datos")
+
+            # Asignación de eje Y (izquierda o derecha) para cada indicador
+            y_axis_by_indicator = {}
+            for indicator in selected_indicators:
+                y_axis_by_indicator[indicator] = st.sidebar.selectbox(
+                    f"Seleccione el eje Y para {indicator}:",
+                    options=["Izquierda", "Derecha"],
+                    key=f"y_axis_{indicator}"
+                )
+
+            # Input para el título del gráfico
+            chart_title = st.sidebar.text_input("Título del gráfico", value="Gráfico de Indicadores Económicos")
+
+            # Determinar el rango de fechas disponible
+            min_date = data["Date"].min()
+            max_date = data["Date"].max()
+
+            # Sección para mostrar el gráfico
+            fig = go.Figure()
+            placeholder = st.empty()
+
+            def update_chart(start_date, end_date):
+                filtered_data = data[(data["Date"] >= start_date) & (data["Date"] <= end_date)]
+
+                fig.data = []  # Limpiar datos existentes en el gráfico
+
+                for indicator in selected_indicators:
+                    indicator_id = indicator_options[indicator]
+                    indicator_data = filtered_data[filtered_data["IndicatorID"] == indicator_id]
+
+                    chart_type = chart_type_by_indicator[indicator]
+                    yaxis = "y2" if y_axis_by_indicator[indicator] == "Derecha" else "y"
+
+                    # Obtener el último valor para la etiqueta de datos
+                    if not indicator_data.empty:
+                        last_value = indicator_data.iloc[-1]["Value"]
+                        last_date = indicator_data.iloc[-1]["Date"]
+                    else:
+                        last_value = None
+                        last_date = None
+
+                    if chart_type == "Línea":
+                        fig.add_trace(go.Scatter(
+                            x=indicator_data["Date"],
+                            y=indicator_data["Value"],
+                            mode="lines+markers" if show_data_labels else "lines",
+                            name=indicator,
+                            line=dict(color=colors[indicator], shape="spline"),
+                            yaxis=yaxis,
+                            text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
+                            textposition="top right" if show_data_labels else None
+                        ))
+                    elif chart_type == "Área":
+                        fig.add_trace(go.Scatter(
+                            x=indicator_data["Date"],
+                            y=indicator_data["Value"],
+                            mode="lines+markers" if show_data_labels else "lines",
+                            fill="tozeroy",
+                            name=indicator,
+                            line=dict(color=colors[indicator]),
+                            yaxis=yaxis,
+                            text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
+                            textposition="top right" if show_data_labels else None
+                        ))
+                    elif chart_type == "Barras agrupadas":
+                        fig.add_trace(go.Bar(
+                            x=indicator_data["Date"],
+                            y=indicator_data["Value"],
+                            name=indicator,
+                            marker=dict(color=colors[indicator]),
+                            text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
+                            textposition='auto' if show_data_labels else None,
+                            yaxis=yaxis
+                        ))
+                    elif chart_type == "Barras apiladas":
+                        fig.add_trace(go.Bar(
+                            x=indicator_data["Date"],
+                            y=indicator_data["Value"],
+                            name=indicator,
+                            marker=dict(color=colors[indicator]),
+                            text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
+                            textposition='auto' if show_data_labels else None,
+                            yaxis=yaxis
+                        ))
+                        fig.update_layout(barmode='stack')
+                    elif chart_type == "Scatter":
+                        fig.add_trace(go.Scatter(
+                            x=indicator_data["Date"],
+                            y=indicator_data["Value"],
+                            mode="markers",
+                            name=indicator,
+                            marker=dict(color=colors[indicator]),
+                            yaxis=yaxis,
+                            text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
+                            textposition="top right" if show_data_labels else None
+                        ))
+                    elif chart_type == "Histograma":
+                        fig.add_trace(go.Histogram(
+                            x=indicator_data["Value"],
+                            name=indicator,
+                            marker=dict(color=colors[indicator]),
+                            yaxis=yaxis
+                        ))
+
+                # Configuración de los ejes Y y diseño general
+                fig.update_layout(
+                    yaxis=dict(
+                        title="Eje Y Izquierdo",
+                        showgrid=True,
+                        zeroline=True,
+                        titlefont=dict(family="Segoe UI", size=12)
+                    ),
+                    yaxis2=dict(
+                        title="Eje Y Derecho",
+                        overlaying="y",
+                        side="right",
+                        showgrid=False,
+                        zeroline=False,
+                        titlefont=dict(family="Segoe UI", size=12)
+                    ),
+                    title={
+                        'text': chart_title,
+                        'y': 0.9,
+                        'x': 0.5,
+                        'xanchor': 'center',
+                        'yanchor': 'top',
+                        'font': dict(size=24, family="Segoe UI")
+                    },
+                    xaxis_title="Fecha",
+                    yaxis_title="Valor",
+                    xaxis=dict(showgrid=False, titlefont=dict(family="Segoe UI", size=12)),
+                    legend=dict(
+                        font=dict(family="Segoe UI", size=10),
+                        orientation="h",
+                        yanchor="top",
+                        y=-0.2,  # Coloca la leyenda debajo del gráfico
+                        xanchor="center",
+                        x=0.5
+                    ),
+                    width=1000,
+                    height=600,
+                    plot_bgcolor='rgba(0,0,0,0)',  # Fondo transparente
+                    paper_bgcolor='rgba(0,0,0,0)'  # Fondo transparente
+                )
+
+                # Renderizar el gráfico en Streamlit
+                placeholder.plotly_chart(fig, use_container_width=True)
+
+            # Agregar slider de fechas debajo del gráfico
+            start_date, end_date = st.slider(
+                "Seleccione el rango de fechas:",
+                min_value=min_date,
+                max_value=max_date,
+                value=(min_date, max_date),
+                format="YYYY-MM-DD"
+            )
+
+            # Actualizar el gráfico en tiempo real
+            update_chart(start_date, end_date)
+
+            # Opción para descargar los datos como Excel
+            col1, col2 = st.columns(2)
+            with col1:
+                st.download_button(
+                    label="📄 Descargar datos en Excel",
+                    data=download_excel(data[(data["Date"] >= start_date) & (data["Date"] <= end_date)]),
+                    file_name="datos_indicadores.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            with col2:
+                # Opción para descargar la imagen del gráfico
+                image_buffer = BytesIO()
+                fig.write_image(image_buffer, format='png', engine='kaleido')
+                st.download_button(
+                    label="🖼️ Descargar gráfico como imagen",
+                    data=image_buffer,
+                    file_name="grafico_indicadores.png",
+                    mime="image/png"
+                )
+
+    else:
+        st.warning("Por favor seleccione al menos un indicador.")
+
