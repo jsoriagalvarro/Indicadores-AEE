@@ -7,7 +7,7 @@ db_config = st.secrets["database"]
 # Función para conectarse a la base de datos
 def get_db_connection():
     conn = pyodbc.connect(
-        f'DRIVER={{ODBC Driver 18 for SQL Server}};'
+        f'DRIVER={{ODBC Driver 17 for SQL Server}};'
         f'SERVER={db_config["server"]};'
         f'DATABASE={db_config["database"]};'
         f'UID={db_config["username"]};'
