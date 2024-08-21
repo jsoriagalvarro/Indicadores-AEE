@@ -83,38 +83,28 @@ if page == "Mesa de trabajo Económica":
     country = st.sidebar.selectbox("Seleccione el país:", options=list(country_options.keys()))
     country_id = country_options[country]
 
-    # Selección de indicadores
-    indicator_options = {
-        "Inflación Interanual": 1,
-        "Inflación Mensual": 2,
-        "Inflación Alimentos Interanual": 3,
-        "Inflación No alimentos Interanual": 4,
-        "Inflación Alimentos Mensual": 5,
-        "Inflación No alimentos Mensual": 6,
-        "Exportaciones": 7,
-        "Importaciones": 8,
-        "Balanza Comercial": 9,
-        "Riesgo País": 10,
-        "Tipo de Cambio Oficial": 11,
-        "Tipo de Cambio Paralelo": 12,
-        "Desempleo": 13,
-        "Reservas Internacionales Netas": 14,
-        "Crecimiento del PIB": 15,
-        "Tasa de Política Monetaria": 16,
-        "Índice Mensual de Actividad Económica (IMAE)": 17,
-        "Variacion salario nominal": 18,
-        "Estimador mensual de actividad económica (EMAE)": 19,
-        "Indicador Mensual de la Actividad Económica del Paraguay (IMAEP)": 20,
-        "Inflación subyacente (Mensual)": 21,
-        "Variación Interanual IMAE": 22,
-        "IMAE Desestacionalizado": 23,
-        "Variación Interanual IMAE Desest.": 24,
-        "IMAE Tendencia Ciclo": 25,
-        "Variación Tendencia Ciclo": 26
-    }
 
-    selected_indicators = st.sidebar.multiselect("Seleccione los indicadores:", options=list(indicator_options.keys()))
-    indicator_ids = [indicator_options[indicator] for indicator in selected_indicators]
+# Función para obtener indicadores disponibles según el país seleccionado
+def get_available_indicators(country_id):
+    conn = get_db_connection()
+    query = f"""
+    SELECT DISTINCT IndicatorName, IndicatorID 
+    FROM EconomicData 
+    WHERE CountryID = {country_id}
+    """
+    indicators = pd.read_sql(query, conn)
+    conn.close()
+    return indicators
+
+
+# Obtener los indicadores disponibles para el país seleccionado
+available_indicators = get_available_indicators(country_id)
+indicator_options = {row['IndicatorName']: row['IndicatorID'] for index, row in available_indicators.iterrows()}
+
+# Selección de indicadores
+selected_indicators = st.sidebar.multiselect("Seleccione los indicadores:", options=list(indicator_options.keys()))
+indicator_ids = [indicator_options[indicator] for indicator in selected_indicators]
+
 
     if indicator_ids:
         # Obtener los datos sin filtrar por fechas
