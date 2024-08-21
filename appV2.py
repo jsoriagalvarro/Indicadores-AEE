@@ -106,12 +106,12 @@ selected_indicators = st.sidebar.multiselect("Seleccione los indicadores:", opti
 indicator_ids = [indicator_options[indicator] for indicator in selected_indicators]
 
 
-    if indicator_ids:
-        # Obtener los datos sin filtrar por fechas
+if indicator_ids:
+    # Obtener los datos sin filtrar por fechas
         data = get_data(country_id, indicator_ids)
 
-        if not data.empty:
-            # Selección de tipo de gráfico por indicador
+    if not data.empty:
+         # Selección de tipo de gráfico por indicador
             chart_type_by_indicator = {}
             chart_type_options = ["Línea", "Área", "Barras agrupadas", "Barras apiladas", "Scatter", "Histograma"]
             for indicator in selected_indicators:
