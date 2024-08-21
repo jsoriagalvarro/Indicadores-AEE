@@ -19,12 +19,12 @@ def get_db_connection():
         'Encrypt=yes;'
     )
     return conn
- 
+
 # Función para obtener los datos de la base de datos
 def get_data(country_id, indicator_ids):
     if not indicator_ids:
         return pd.DataFrame()  # Devolver un DataFrame vacío si no hay indicadores seleccionados
- 
+
     conn = get_db_connection()
     query = f"""
     SELECT Date, Value, IndicatorID 
@@ -36,6 +36,18 @@ def get_data(country_id, indicator_ids):
     data = pd.read_sql(query, conn)
     conn.close()
     return data
+
+# Función para obtener indicadores disponibles según el país seleccionado
+def get_available_indicators(country_id):
+    conn = get_db_connection()
+    query = f"""
+    SELECT DISTINCT IndicatorName, IndicatorID 
+    FROM EconomicData 
+    WHERE CountryID = {country_id}
+    """
+    indicators = pd.read_sql(query, conn)
+    conn.close()
+    return indicators
 
 # Función para descargar datos en formato Excel
 def download_excel(data):
@@ -83,41 +95,28 @@ if page == "Mesa de trabajo Económica":
     country = st.sidebar.selectbox("Seleccione el país:", options=list(country_options.keys()))
     country_id = country_options[country]
 
+    # Obtener los indicadores disponibles para el país seleccionado
+    available_indicators = get_available_indicators(country_id)
+    indicator_options = {row['IndicatorName']: row['IndicatorID'] for index, row in available_indicators.iterrows()}
 
-# Función para obtener indicadores disponibles según el país seleccionado
-def get_available_indicators(country_id):
-    conn = get_db_connection()
-    query = f"""
-    SELECT DISTINCT IndicatorName, IndicatorID 
-    FROM EconomicData 
-    WHERE CountryID = {country_id}
-    """
-    indicators = pd.read_sql(query, conn)
-    conn.close()
-    return indicators
+    # Selección de indicadores
+    selected_indicators = st.sidebar.multiselect("Seleccione los indicadores:", options=list(indicator_options.keys()))
+    indicator_ids = [indicator_options[indicator] for indicator in selected_indicators]
 
-
-# Obtener los indicadores disponibles para el país seleccionado
-available_indicators = get_available_indicators(country_id)
-indicator_options = {row['IndicatorName']: row['IndicatorID'] for index, row in available_indicators.iterrows()}
-
-# Selección de indicadores
-selected_indicators = st.sidebar.multiselect("Seleccione los indicadores:", options=list(indicator_options.keys()))
-indicator_ids = [indicator_options[indicator] for indicator in selected_indicators]
-
-
-if indicator_ids:
-    # Obtener los datos sin filtrar por fechas
+    if indicator_ids:
+        # Obtener los datos sin filtrar por fechas
         data = get_data(country_id, indicator_ids)
 
-    if not data.empty:
-         # Selección de tipo de gráfico por indicador
+        if not data.empty:
+            # Selección de tipo de gráfico por indicador
             chart_type_by_indicator = {}
             chart_type_options = ["Línea", "Área", "Barras agrupadas", "Barras apiladas", "Scatter", "Histograma"]
             for indicator in selected_indicators:
-                chart_type_by_indicator[indicator] = st.sidebar.selectbox(f"Seleccione el tipo de gráfico para {indicator}:",
-                                                                          options=chart_type_options,
-                                                                          key=f"chart_type_{indicator}")
+                chart_type_by_indicator[indicator] = st.sidebar.selectbox(
+                    f"Seleccione el tipo de gráfico para {indicator}:",
+                    options=chart_type_options,
+                    key=f"chart_type_{indicator}"
+                )
 
             # Selección de colores para cada serie
             colors = {}
@@ -236,7 +235,7 @@ if indicator_ids:
                         title="Eje Y Izquierdo",
                         showgrid=True,
                         zeroline=True,
-                        titlefont=dict(family="Segoe UI", size=12)
+                                                titlefont=dict(family="Segoe UI", size=12)
                     ),
                     yaxis2=dict(
                         title="Eje Y Derecho",
@@ -306,6 +305,8 @@ if indicator_ids:
                     mime="image/png"
                 )
 
+        else:
+            st.warning("No hay datos disponibles para los indicadores seleccionados.")
     else:
         st.warning("Por favor seleccione al menos un indicador.")
 
