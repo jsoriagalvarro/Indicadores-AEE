@@ -42,7 +42,7 @@ def get_available_indicators(country_id):
     conn = get_db_connection()
     query = f"""
     SELECT DISTINCT IndicatorName, IndicatorID 
-    FROM EconomicData 
+    FROM Indicators 
     WHERE CountryID = {country_id}
     """
     indicators = pd.read_sql(query, conn)
