@@ -41,13 +41,15 @@ def get_data(country_id, indicator_ids):
 def get_available_indicators(country_id):
     conn = get_db_connection()
     query = f"""
-    SELECT DISTINCT IndicatorName, IndicatorID 
-    FROM EconomicData 
-    WHERE CountryID = {country_id}
+    SELECT DISTINCT i.IndicatorName, i.IndicatorID
+    FROM EconomicData e
+    JOIN Indicators i ON e.IndicatorID = i.IndicatorID
+    WHERE e.CountryID = {country_id}
     """
     indicators = pd.read_sql(query, conn)
     conn.close()
     return indicators
+
 
 # Función para descargar datos en formato Excel
 def download_excel(data):
