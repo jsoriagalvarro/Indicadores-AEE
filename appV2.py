@@ -222,9 +222,9 @@ if page == "Mesa de trabajo Económica":
                             text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
                             textposition="top right" if show_data_labels else None
                         ))
-                    elif chart_type == "Histograma":
+                                        elif chart_type == "Histograma":
                         fig.add_trace(go.Histogram(
-                                                        x=indicator_data["Value"],
+                            x=indicator_data["Value"],
                             name=indicator,
                             marker=dict(color=colors[indicator]),
                             yaxis=yaxis
@@ -290,7 +290,7 @@ if page == "Mesa de trabajo Económica":
             col1, col2 = st.columns(2)
             with col1:
                 st.download_button(
-                    label="📄 Descargar datos en Excel",
+                    label="Descargar datos en Excel",
                     data=download_excel(data_with_names[(data_with_names["Date"] >= start_date) & (data_with_names["Date"] <= end_date)]),
                     file_name="datos_indicadores.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -300,7 +300,7 @@ if page == "Mesa de trabajo Económica":
                 image_buffer = BytesIO()
                 fig.write_image(image_buffer, format='png', engine='kaleido')
                 st.download_button(
-                    label="🖼️ Descargar gráfico como imagen",
+                    label="Descargar gráfico como imagen",
                     data=image_buffer,
                     file_name="grafico_indicadores.png",
                     mime="image/png"
@@ -314,4 +314,3 @@ if page == "Mesa de trabajo Económica":
             st.warning("No hay datos disponibles para los indicadores seleccionados.")
     else:
         st.warning("Por favor seleccione al menos un indicador.")
-
