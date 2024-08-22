@@ -20,17 +20,16 @@ def get_db_connection():
     )
     return conn
 
-# Función para obtener los datos con nombres de indicador y país
+# Función para obtener los datos con nombres simplificados
 def get_data_with_names(country_id, indicator_ids):
     if not indicator_ids:
         return pd.DataFrame()  # Devolver un DataFrame vacío si no hay indicadores seleccionados
 
     conn = get_db_connection()
     query = f"""
-    SELECT e.Date, e.Value, i.IndicatorName, c.CountryName
+    SELECT e.Date, e.Value, i.Unit
     FROM EconomicData e
     JOIN Indicators i ON e.IndicatorID = i.IndicatorID
-    JOIN Countries c ON e.CountryID = c.CountryID
     WHERE e.CountryID = {country_id}
     AND e.IndicatorID IN ({','.join(map(str, indicator_ids))})
     ORDER BY e.Date
@@ -51,7 +50,6 @@ def get_available_indicators(country_id):
     indicators = pd.read_sql(query, conn)
     conn.close()
     return indicators
-
 
 # Función para descargar datos en formato Excel
 def download_excel(data):
@@ -108,14 +106,10 @@ if page == "Mesa de trabajo Económica":
     indicator_ids = [indicator_options[indicator] for indicator in selected_indicators]
 
     if indicator_ids:
-        # Obtener los datos con nombres
+        # Obtener los datos con nombres simplificados
         data_with_names = get_data_with_names(country_id, indicator_ids)
 
         if not data_with_names.empty:
-            # Mostrar la tabla debajo del gráfico
-            st.write("### Datos del Gráfico")
-            st.dataframe(data_with_names)
-
             # Selección de tipo de gráfico por indicador
             chart_type_by_indicator = {}
             chart_type_options = ["Línea", "Área", "Barras agrupadas", "Barras apiladas", "Scatter", "Histograma"]
@@ -160,7 +154,7 @@ if page == "Mesa de trabajo Económica":
                 fig.data = []  # Limpiar datos existentes en el gráfico
 
                 for indicator in selected_indicators:
-                    indicator_data = filtered_data[filtered_data["IndicatorName"] == indicator]
+                    indicator_data = filtered_data[filtered_data["Unit"] == indicator]
 
                     chart_type = chart_type_by_indicator[indicator]
                     yaxis = "y2" if y_axis_by_indicator[indicator] == "Derecha" else "y"
@@ -226,11 +220,11 @@ if page == "Mesa de trabajo Económica":
                             marker=dict(color=colors[indicator]),
                             yaxis=yaxis,
                             text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
-                                                        textposition="top right" if show_data_labels else None
+                            textposition="top right" if show_data_labels else None
                         ))
                     elif chart_type == "Histograma":
                         fig.add_trace(go.Histogram(
-                            x=indicator_data["Value"],
+                                                        x=indicator_data["Value"],
                             name=indicator,
                             marker=dict(color=colors[indicator]),
                             yaxis=yaxis
@@ -312,7 +306,12 @@ if page == "Mesa de trabajo Económica":
                     mime="image/png"
                 )
 
+            # Mostrar la tabla simplificada debajo del gráfico y los botones de descarga
+            st.write("### Datos del Gráfico")
+            st.dataframe(data_with_names[['Date', 'Value', 'Unit']])
+
         else:
             st.warning("No hay datos disponibles para los indicadores seleccionados.")
     else:
         st.warning("Por favor seleccione al menos un indicador.")
+
