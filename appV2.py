@@ -20,18 +20,20 @@ def get_db_connection():
     )
     return conn
 
-# Función para obtener los datos de la base de datos
-def get_data(country_id, indicator_ids):
+# Función para obtener los datos con nombres de indicador y país
+def get_data_with_names(country_id, indicator_ids):
     if not indicator_ids:
         return pd.DataFrame()  # Devolver un DataFrame vacío si no hay indicadores seleccionados
 
     conn = get_db_connection()
     query = f"""
-    SELECT Date, Value, IndicatorID 
-    FROM EconomicData 
-    WHERE CountryID = {country_id} 
-    AND IndicatorID IN ({','.join(map(str, indicator_ids))})
-    ORDER BY Date
+    SELECT e.Date, e.Value, i.IndicatorName, c.CountryName
+    FROM EconomicData e
+    JOIN Indicators i ON e.IndicatorID = i.IndicatorID
+    JOIN Countries c ON e.CountryID = c.CountryID
+    WHERE e.CountryID = {country_id}
+    AND e.IndicatorID IN ({','.join(map(str, indicator_ids))})
+    ORDER BY e.Date
     """
     data = pd.read_sql(query, conn)
     conn.close()
@@ -106,10 +108,14 @@ if page == "Mesa de trabajo Económica":
     indicator_ids = [indicator_options[indicator] for indicator in selected_indicators]
 
     if indicator_ids:
-        # Obtener los datos sin filtrar por fechas
-        data = get_data(country_id, indicator_ids)
+        # Obtener los datos con nombres
+        data_with_names = get_data_with_names(country_id, indicator_ids)
 
-        if not data.empty:
+        if not data_with_names.empty:
+            # Mostrar la tabla debajo del gráfico
+            st.write("### Datos del Gráfico")
+            st.dataframe(data_with_names)
+
             # Selección de tipo de gráfico por indicador
             chart_type_by_indicator = {}
             chart_type_options = ["Línea", "Área", "Barras agrupadas", "Barras apiladas", "Scatter", "Histograma"]
@@ -141,21 +147,20 @@ if page == "Mesa de trabajo Económica":
             chart_title = st.sidebar.text_input("Título del gráfico", value="Gráfico de Indicadores Económicos")
 
             # Determinar el rango de fechas disponible
-            min_date = data["Date"].min()
-            max_date = data["Date"].max()
+            min_date = data_with_names["Date"].min()
+            max_date = data_with_names["Date"].max()
 
             # Sección para mostrar el gráfico
             fig = go.Figure()
             placeholder = st.empty()
 
             def update_chart(start_date, end_date):
-                filtered_data = data[(data["Date"] >= start_date) & (data["Date"] <= end_date)]
+                filtered_data = data_with_names[(data_with_names["Date"] >= start_date) & (data_with_names["Date"] <= end_date)]
 
                 fig.data = []  # Limpiar datos existentes en el gráfico
 
                 for indicator in selected_indicators:
-                    indicator_id = indicator_options[indicator]
-                    indicator_data = filtered_data[filtered_data["IndicatorID"] == indicator_id]
+                    indicator_data = filtered_data[filtered_data["IndicatorName"] == indicator]
 
                     chart_type = chart_type_by_indicator[indicator]
                     yaxis = "y2" if y_axis_by_indicator[indicator] == "Derecha" else "y"
@@ -221,7 +226,7 @@ if page == "Mesa de trabajo Económica":
                             marker=dict(color=colors[indicator]),
                             yaxis=yaxis,
                             text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
-                            textposition="top right" if show_data_labels else None
+                                                        textposition="top right" if show_data_labels else None
                         ))
                     elif chart_type == "Histograma":
                         fig.add_trace(go.Histogram(
@@ -237,7 +242,7 @@ if page == "Mesa de trabajo Económica":
                         title="Eje Y Izquierdo",
                         showgrid=True,
                         zeroline=True,
-                                                titlefont=dict(family="Segoe UI", size=12)
+                        titlefont=dict(family="Segoe UI", size=12)
                     ),
                     yaxis2=dict(
                         title="Eje Y Derecho",
@@ -292,7 +297,7 @@ if page == "Mesa de trabajo Económica":
             with col1:
                 st.download_button(
                     label="📄 Descargar datos en Excel",
-                    data=download_excel(data[(data["Date"] >= start_date) & (data["Date"] <= end_date)]),
+                    data=download_excel(data_with_names[(data_with_names["Date"] >= start_date) & (data_with_names["Date"] <= end_date)]),
                     file_name="datos_indicadores.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
@@ -311,4 +316,3 @@ if page == "Mesa de trabajo Económica":
             st.warning("No hay datos disponibles para los indicadores seleccionados.")
     else:
         st.warning("Por favor seleccione al menos un indicador.")
-
