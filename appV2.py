@@ -20,19 +20,18 @@ def get_db_connection():
     )
     return conn
 
-# Función para obtener los datos con nombres simplificados
-def get_data_with_names(country_id, indicator_ids):
+# Función para obtener los datos de la base de datos
+def get_data(country_id, indicator_ids):
     if not indicator_ids:
         return pd.DataFrame()  # Devolver un DataFrame vacío si no hay indicadores seleccionados
 
     conn = get_db_connection()
     query = f"""
-    SELECT e.Date, e.Value, i.Unit
-    FROM EconomicData e
-    JOIN Indicators i ON e.IndicatorID = i.IndicatorID
-    WHERE e.CountryID = {country_id}
-    AND e.IndicatorID IN ({','.join(map(str, indicator_ids))})
-    ORDER BY e.Date
+    SELECT Date, Value, IndicatorID 
+    FROM EconomicData 
+    WHERE CountryID = {country_id} 
+    AND IndicatorID IN ({','.join(map(str, indicator_ids))})
+    ORDER BY Date
     """
     data = pd.read_sql(query, conn)
     conn.close()
@@ -106,10 +105,10 @@ if page == "Mesa de trabajo Económica":
     indicator_ids = [indicator_options[indicator] for indicator in selected_indicators]
 
     if indicator_ids:
-        # Obtener los datos con nombres simplificados
-        data_with_names = get_data_with_names(country_id, indicator_ids)
+        # Obtener los datos sin filtrar por fechas
+        data = get_data(country_id, indicator_ids)
 
-        if not data_with_names.empty:
+        if not data.empty:
             # Selección de tipo de gráfico por indicador
             chart_type_by_indicator = {}
             chart_type_options = ["Línea", "Área", "Barras agrupadas", "Barras apiladas", "Scatter", "Histograma"]
@@ -141,20 +140,21 @@ if page == "Mesa de trabajo Económica":
             chart_title = st.sidebar.text_input("Título del gráfico", value="Gráfico de Indicadores Económicos")
 
             # Determinar el rango de fechas disponible
-            min_date = data_with_names["Date"].min()
-            max_date = data_with_names["Date"].max()
+            min_date = data["Date"].min()
+            max_date = data["Date"].max()
 
             # Sección para mostrar el gráfico
             fig = go.Figure()
             placeholder = st.empty()
 
             def update_chart(start_date, end_date):
-                filtered_data = data_with_names[(data_with_names["Date"] >= start_date) & (data_with_names["Date"] <= end_date)]
+                filtered_data = data[(data["Date"] >= start_date) & (data["Date"] <= end_date)]
 
                 fig.data = []  # Limpiar datos existentes en el gráfico
 
                 for indicator in selected_indicators:
-                    indicator_data = filtered_data[filtered_data["Unit"] == indicator]
+                    indicator_id = indicator_options[indicator]
+                    indicator_data = filtered_data[filtered_data["IndicatorID"] == indicator_id]
 
                     chart_type = chart_type_by_indicator[indicator]
                     yaxis = "y2" if y_axis_by_indicator[indicator] == "Derecha" else "y"
@@ -231,7 +231,7 @@ if page == "Mesa de trabajo Económica":
                         ))
 
                 # Configuración de los ejes Y y diseño general
-                fig.update_layout(
+                                fig.update_layout(
                     yaxis=dict(
                         title="Eje Y Izquierdo",
                         showgrid=True,
@@ -290,8 +290,8 @@ if page == "Mesa de trabajo Económica":
             col1, col2 = st.columns(2)
             with col1:
                 st.download_button(
-                    label="Descargar datos en Excel",
-                    data=download_excel(data_with_names[(data_with_names["Date"] >= start_date) & (data_with_names["Date"] <= end_date)]),
+                    label="📄 Descargar datos en Excel",
+                    data=download_excel(data[(data["Date"] >= start_date) & (data["Date"] <= end_date)]),
                     file_name="datos_indicadores.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
@@ -300,7 +300,7 @@ if page == "Mesa de trabajo Económica":
                 image_buffer = BytesIO()
                 fig.write_image(image_buffer, format='png', engine='kaleido')
                 st.download_button(
-                    label="Descargar gráfico como imagen",
+                    label="🖼️ Descargar gráfico como imagen",
                     data=image_buffer,
                     file_name="grafico_indicadores.png",
                     mime="image/png"
@@ -308,11 +308,9 @@ if page == "Mesa de trabajo Económica":
 
             # Mostrar la tabla simplificada debajo del gráfico y los botones de descarga
             st.write("### Datos del Gráfico")
-            st.dataframe(data_with_names[['Date', 'Value', 'Unit']])
+            st.dataframe(data[['Date', 'Value', 'IndicatorID']])
 
         else:
             st.warning("No hay datos disponibles para los indicadores seleccionados.")
     else:
         st.warning("Por favor seleccione al menos un indicador.")
-
-                    
