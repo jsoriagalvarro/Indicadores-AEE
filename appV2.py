@@ -231,7 +231,7 @@ if page == "Mesa de trabajo Económica":
                         ))
 
                 # Configuración de los ejes Y y diseño general
-                                fig.update_layout(
+                        fig.update_layout(
                     yaxis=dict(
                         title="Eje Y Izquierdo",
                         showgrid=True,
