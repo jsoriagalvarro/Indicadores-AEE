@@ -27,10 +27,11 @@ def get_data(country_id, indicator_ids):
 
     conn = get_db_connection()
     query = f"""
-    SELECT Date, Value, IndicatorID 
-    FROM EconomicData 
-    WHERE CountryID = {country_id} 
-    AND IndicatorID IN ({','.join(map(str, indicator_ids))})
+    SELECT Date, Value, Unit 
+    FROM EconomicData e
+    JOIN Indicators i ON e.IndicatorID = i.IndicatorID
+    WHERE e.CountryID = {country_id} 
+    AND e.IndicatorID IN ({','.join(map(str, indicator_ids))})
     ORDER BY Date
     """
     data = pd.read_sql(query, conn)
@@ -224,14 +225,14 @@ if page == "Mesa de trabajo Económica":
                         ))
                     elif chart_type == "Histograma":
                         fig.add_trace(go.Histogram(
-                            x=indicator_data["Value"],
+                                                    x=indicator_data["Value"],
                             name=indicator,
                             marker=dict(color=colors[indicator]),
                             yaxis=yaxis
                         ))
 
                 # Configuración de los ejes Y y diseño general
-                        fig.update_layout(
+                fig.update_layout(
                     yaxis=dict(
                         title="Eje Y Izquierdo",
                         showgrid=True,
@@ -247,7 +248,7 @@ if page == "Mesa de trabajo Económica":
                         titlefont=dict(family="Segoe UI", size=12)
                     ),
                     title={
-                        'text': chart_title,
+                        'text': chart_title,  # Usar el título ingresado por el usuario
                         'y': 0.9,
                         'x': 0.5,
                         'xanchor': 'center',
@@ -308,7 +309,7 @@ if page == "Mesa de trabajo Económica":
 
             # Mostrar la tabla simplificada debajo del gráfico y los botones de descarga
             st.write("### Datos del Gráfico")
-            st.dataframe(data[['Date', 'Value', 'IndicatorID']])
+            st.dataframe(data[['Date', 'Value', 'Unit']])
 
         else:
             st.warning("No hay datos disponibles para los indicadores seleccionados.")
