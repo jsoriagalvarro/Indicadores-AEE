@@ -222,7 +222,7 @@ if page == "Mesa de trabajo Económica":
                             text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
                             textposition="top right" if show_data_labels else None
                         ))
-                                        elif chart_type == "Histograma":
+                    elif chart_type == "Histograma":
                         fig.add_trace(go.Histogram(
                             x=indicator_data["Value"],
                             name=indicator,
@@ -314,3 +314,5 @@ if page == "Mesa de trabajo Económica":
             st.warning("No hay datos disponibles para los indicadores seleccionados.")
     else:
         st.warning("Por favor seleccione al menos un indicador.")
+
+                    
