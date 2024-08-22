@@ -27,11 +27,10 @@ def get_data(country_id, indicator_ids):
 
     conn = get_db_connection()
     query = f"""
-    SELECT Date, Value, Unit 
-    FROM EconomicData e
-    JOIN Indicators i ON e.IndicatorID = i.IndicatorID
-    WHERE e.CountryID = {country_id} 
-    AND e.IndicatorID IN ({','.join(map(str, indicator_ids))})
+    SELECT Date, Value, IndicatorID 
+    FROM EconomicData 
+    WHERE CountryID = {country_id} 
+    AND IndicatorID IN ({','.join(map(str, indicator_ids))})
     ORDER BY Date
     """
     data = pd.read_sql(query, conn)
@@ -50,6 +49,7 @@ def get_available_indicators(country_id):
     indicators = pd.read_sql(query, conn)
     conn.close()
     return indicators
+
 
 # Función para descargar datos en formato Excel
 def download_excel(data):
@@ -225,7 +225,7 @@ if page == "Mesa de trabajo Económica":
                         ))
                     elif chart_type == "Histograma":
                         fig.add_trace(go.Histogram(
-                                                    x=indicator_data["Value"],
+                            x=indicator_data["Value"],
                             name=indicator,
                             marker=dict(color=colors[indicator]),
                             yaxis=yaxis
@@ -237,7 +237,7 @@ if page == "Mesa de trabajo Económica":
                         title="Eje Y Izquierdo",
                         showgrid=True,
                         zeroline=True,
-                        titlefont=dict(family="Segoe UI", size=12)
+                                                titlefont=dict(family="Segoe UI", size=12)
                     ),
                     yaxis2=dict(
                         title="Eje Y Derecho",
@@ -248,7 +248,7 @@ if page == "Mesa de trabajo Económica":
                         titlefont=dict(family="Segoe UI", size=12)
                     ),
                     title={
-                        'text': chart_title,  # Usar el título ingresado por el usuario
+                        'text': chart_title,
                         'y': 0.9,
                         'x': 0.5,
                         'xanchor': 'center',
@@ -291,7 +291,7 @@ if page == "Mesa de trabajo Económica":
             col1, col2 = st.columns(2)
             with col1:
                 st.download_button(
-                    label="📄 Descargar datos en Excel",
+                    label="Descargar datos en Excel",
                     data=download_excel(data[(data["Date"] >= start_date) & (data["Date"] <= end_date)]),
                     file_name="datos_indicadores.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -301,15 +301,11 @@ if page == "Mesa de trabajo Económica":
                 image_buffer = BytesIO()
                 fig.write_image(image_buffer, format='png', engine='kaleido')
                 st.download_button(
-                    label="🖼️ Descargar gráfico como imagen",
+                    label="Descargar gráfico como imagen",
                     data=image_buffer,
                     file_name="grafico_indicadores.png",
                     mime="image/png"
                 )
-
-            # Mostrar la tabla simplificada debajo del gráfico y los botones de descarga
-            st.write("### Datos del Gráfico")
-            st.dataframe(data[['Date', 'Value', 'Unit']])
 
         else:
             st.warning("No hay datos disponibles para los indicadores seleccionados.")
