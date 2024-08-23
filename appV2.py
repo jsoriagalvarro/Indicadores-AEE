@@ -96,8 +96,7 @@ if page == "Home":
     4. Personaliza el tipo de gráfico y otros parámetros.
     5. Descarga los datos o la visualización si es necesario.
 
-    ### Soporte:
-    Si tienes alguna pregunta o necesitas asistencia, por favor contacta al equipo de soporte en [support@aee.com](mailto:support@aee.com).
+    
     
     """)
     
