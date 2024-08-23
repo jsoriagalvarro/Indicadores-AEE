@@ -1,6 +1,6 @@
 import streamlit as st
 import pyodbc
-import pandas as pd 
+import pandas as pd
 import plotly.graph_objs as go
 from io import BytesIO
 
@@ -49,7 +49,6 @@ def get_available_indicators(country_id):
     indicators = pd.read_sql(query, conn)
     conn.close()
     return indicators
-
 
 # Función para descargar datos en formato Excel
 def download_excel(data):
@@ -112,7 +111,7 @@ if page == "Mesa de trabajo Económica":
         if not data.empty:
             # Selección de tipo de gráfico por indicador
             chart_type_by_indicator = {}
-            chart_type_options = ["Línea", "Área", "Barras agrupadas", "Barras apiladas", "Scatter", "Histograma"]
+            chart_type_options = ["Línea", "Área", "Barras agrupadas", "Barras apiladas", "Scatter", "Histograma", "Áreas apiladas"]  # Agregada opción "Áreas apiladas"
             for indicator in selected_indicators:
                 chart_type_by_indicator[indicator] = st.sidebar.selectbox(
                     f"Seleccione el tipo de gráfico para {indicator}:",
@@ -145,151 +144,149 @@ if page == "Mesa de trabajo Económica":
             max_date = data["Date"].max()
 
             # Sección para mostrar el gráfico
-            # Sección para mostrar el gráfico
-fig = go.Figure()
-placeholder = st.empty()
+            fig = go.Figure()
+            placeholder = st.empty()
 
-def update_chart(start_date, end_date):
-    filtered_data = data[(data["Date"] >= start_date) & (data["Date"] <= end_date)]
+            def update_chart(start_date, end_date):
+                filtered_data = data[(data["Date"] >= start_date) & (data["Date"] <= end_date)]
 
-    fig.data = []  # Limpiar datos existentes en el gráfico
+                fig.data = []  # Limpiar datos existentes en el gráfico
 
-    for indicator in selected_indicators:
-        indicator_id = indicator_options[indicator]
-        indicator_data = filtered_data[filtered_data["IndicatorID"] == indicator_id]
+                for indicator in selected_indicators:
+                    indicator_id = indicator_options[indicator]
+                    indicator_data = filtered_data[filtered_data["IndicatorID"] == indicator_id]
 
-        chart_type = chart_type_by_indicator[indicator]
-        yaxis = "y2" if y_axis_by_indicator[indicator] == "Derecha" else "y"
+                    chart_type = chart_type_by_indicator[indicator]
+                    yaxis = "y2" if y_axis_by_indicator[indicator] == "Derecha" else "y"
 
-        # Obtener el último valor para la etiqueta de datos
-        if not indicator_data.empty:
-            last_value = indicator_data.iloc[-1]["Value"]
-            last_date = indicator_data.iloc[-1]["Date"]
-        else:
-            last_value = None
-            last_date = None
+                    # Obtener el último valor para la etiqueta de datos
+                    if not indicator_data.empty:
+                        last_value = indicator_data.iloc[-1]["Value"]
+                        last_date = indicator_data.iloc[-1]["Date"]
+                    else:
+                        last_value = None
+                        last_date = None
 
-        if chart_type == "Línea":
-            fig.add_trace(go.Scatter(
-                x=indicator_data["Date"],
-                y=indicator_data["Value"],
-                mode="lines+markers" if show_data_labels else "lines",
-                name=indicator,
-                line=dict(color=colors[indicator], shape="spline"),
-                yaxis=yaxis,
-                text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
-                textposition="top right" if show_data_labels else None
-            ))
-        elif chart_type == "Área":
-            fig.add_trace(go.Scatter(
-                x=indicator_data["Date"],
-                y=indicator_data["Value"],
-                mode="lines+markers" if show_data_labels else "lines",
-                fill="tozeroy",
-                name=indicator,
-                line=dict(color=colors[indicator]),
-                yaxis=yaxis,
-                text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
-                textposition="top right" if show_data_labels else None
-            ))
-        elif chart_type == "Barras agrupadas":
-            fig.add_trace(go.Bar(
-                x=indicator_data["Date"],
-                y=indicator_data["Value"],
-                name=indicator,
-                marker=dict(color=colors[indicator]),
-                text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
-                textposition='auto' if show_data_labels else None,
-                yaxis=yaxis
-            ))
-        elif chart_type == "Barras apiladas":
-            fig.add_trace(go.Bar(
-                x=indicator_data["Date"],
-                y=indicator_data["Value"],
-                name=indicator,
-                marker=dict(color=colors[indicator]),
-                text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
-                textposition='auto' if show_data_labels else None,
-                yaxis=yaxis
-            ))
-            fig.update_layout(barmode='stack')
-        elif chart_type == "Áreas apiladas":  # Nueva opción añadida
-            fig.add_trace(go.Scatter(
-                x=indicator_data["Date"],
-                y=indicator_data["Value"],
-                mode="lines+markers" if show_data_labels else "lines",
-                fill="tonexty",
-                name=indicator,
-                line=dict(color=colors[indicator]),
-                yaxis=yaxis,
-                text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
-                textposition="top right" if show_data_labels else None
-            ))
-            fig.update_layout(barmode='stack')
-        elif chart_type == "Scatter":
-            fig.add_trace(go.Scatter(
-                x=indicator_data["Date"],
-                y=indicator_data["Value"],
-                mode="markers",
-                name=indicator,
-                marker=dict(color=colors[indicator]),
-                yaxis=yaxis,
-                text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
-                textposition="top right" if show_data_labels else None
-            ))
-        elif chart_type == "Histograma":
-            fig.add_trace(go.Histogram(
-                x=indicator_data["Value"],
-                name=indicator,
-                marker=dict(color=colors[indicator]),
-                yaxis=yaxis
-            ))
+                    if chart_type == "Línea":
+                        fig.add_trace(go.Scatter(
+                            x=indicator_data["Date"],
+                            y=indicator_data["Value"],
+                            mode="lines+markers" if show_data_labels else "lines",
+                            name=indicator,
+                            line=dict(color=colors[indicator], shape="spline"),
+                            yaxis=yaxis,
+                            text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
+                            textposition="top right" if show_data_labels else None
+                        ))
+                    elif chart_type == "Área":
+                        fig.add_trace(go.Scatter(
+                            x=indicator_data["Date"],
+                            y=indicator_data["Value"],
+                            mode="lines+markers" if show_data_labels else "lines",
+                            fill="tozeroy",
+                            name=indicator,
+                            line=dict(color=colors[indicator]),
+                            yaxis=yaxis,
+                            text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
+                            textposition="top right" if show_data_labels else None
+                        ))
+                    elif chart_type == "Barras agrupadas":
+                        fig.add_trace(go.Bar(
+                            x=indicator_data["Date"],
+                            y=indicator_data["Value"],
+                            name=indicator,
+                            marker=dict(color=colors[indicator]),
+                            text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
+                            textposition='auto' if show_data_labels else None,
+                            yaxis=yaxis
+                        ))
+                    elif chart_type == "Barras apiladas":
+                        fig.add_trace(go.Bar(
+                            x=indicator_data["Date"],
+                            y=indicator_data["Value"],
+                            name=indicator,
+                            marker=dict(color=colors[indicator]),
+                            text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
+                            textposition='auto' if show_data_labels else None,
+                            yaxis=yaxis
+                        ))
+                        fig.update_layout(barmode='stack')
+                    elif chart_type == "Áreas apiladas":
+                        fig.add_trace(go.Scatter(
+                            x=indicator_data["Date"],
+                            y=indicator_data["Value"],
+                            mode="lines+markers" if show_data_labels else "lines",
+                            fill="tonexty",
+                            name=indicator,
+                            line=dict(color=colors[indicator]),
+                            yaxis=yaxis,
+                            text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
+                            textposition="top right" if show_data_labels else None
+                        ))
+                        fig.update_layout(barmode='stack')
+                    elif chart_type == "Scatter":
+                        fig.add_trace(go.Scatter(
+                            x=indicator_data["Date"],
+                            y=indicator_data["Value"],
+                            mode="markers",
+                            name=indicator,
+                            marker=dict(color=colors[indicator]),
+                            yaxis=yaxis,
+                            text=[f"{last_value:.2f}" if d == last_date else "" for d in indicator_data["Date"]],
+                            textposition="top right" if show_data_labels else None
+                        ))
+                    elif chart_type == "Histograma":
+                        fig.add_trace(go.Histogram(
+                            x=indicator_data["Value"],
+                            name=indicator,
+                            marker=dict(color=colors[indicator]),
+                            yaxis=yaxis
+                        ))
 
-    # Configuración de los ejes Y, diseño general y hovermode
-    fig.update_layout(
-        yaxis=dict(
-            title="Eje Y Izquierdo",
-            showgrid=True,
-            zeroline=True,
-            titlefont=dict(family="Segoe UI", size=12)
-        ),
-        yaxis2=dict(
-            title="Eje Y Derecho",
-            overlaying="y",
-            side="right",
-            showgrid=False,
-            zeroline=False,
-            titlefont=dict(family="Segoe UI", size=12)
-        ),
-        title={
-            'text': chart_title,
-            'y': 0.9,
-            'x': 0.5,
-            'xanchor': 'center',
-            'yanchor': 'top',
-            'font': dict(size=24, family="Segoe UI")
-        },
-        xaxis_title="Fecha",
-        yaxis_title="Valor",
-        xaxis=dict(showgrid=False, titlefont=dict(family="Segoe UI", size=12)),
-        legend=dict(
-            font=dict(family="Segoe UI", size=10),
-            orientation="h",
-            yanchor="top",
-            y=-0.2,  # Coloca la leyenda debajo del gráfico
-            xanchor="center",
-            x=0.5
-        ),
-        hovermode='x unified',  # Hovermode agregado
-        width=1000,
-        height=600,
-        plot_bgcolor='rgba(0,0,0,0)',  # Fondo transparente
-        paper_bgcolor='rgba(0,0,0,0)'  # Fondo transparente
-    )
+                # Configuración de los ejes Y, diseño general y hovermode
+                fig.update_layout(
+                    yaxis=dict(
+                        title="Eje Y Izquierdo",
+                        showgrid=True,
+                        zeroline=True,
+                        titlefont=dict(family="Segoe UI", size=12)
+                    ),
+                    yaxis2=dict(
+                        title="Eje Y Derecho",
+                        overlaying="y",
+                        side="right",
+                        showgrid=False,
+                        zeroline=False,
+                        titlefont=dict(family="Segoe UI", size=12)
+                    ),
+                    title={
+                        'text': chart_title,
+                        'y': 0.9,
+                        'x': 0.5,
+                        'xanchor': 'center',
+                        'yanchor': 'top',
+                        'font': dict(size=24, family="Segoe UI")
+                    },
+                    xaxis_title="Fecha",
+                    yaxis_title="Valor",
+                    xaxis=dict(showgrid=False, titlefont=dict(family="Segoe UI", size=12)),
+                    legend=dict(
+                        font=dict(family="Segoe UI", size=10),
+                        orientation="h",
+                        yanchor="top",
+                        y=-0.2,  # Coloca la leyenda debajo del gráfico
+                        xanchor="center",
+                        x=0.5
+                    ),
+                    hovermode='x unified',  # Hovermode agregado
+                    width=1000,
+                    height=600,
+                    plot_bgcolor='rgba(0,0,0,0)',  # Fondo transparente
+                    paper_bgcolor='rgba(0,0,0,0)'  # Fondo transparente
+                )
 
-    # Renderizar el gráfico en Streamlit
-    placeholder.plotly_chart(fig, use_container_width=True)
-
+                # Renderizar el gráfico en Streamlit
+                placeholder.plotly_chart(fig, use_container_width=True)
 
             # Agregar slider de fechas debajo del gráfico
             start_date, end_date = st.slider(
