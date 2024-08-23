@@ -246,13 +246,11 @@ if page == "Mesa de trabajo Económica":
                 # Configuración de los ejes Y, diseño general y hovermode
                 fig.update_layout(
                     yaxis=dict(
-                        title="Eje Y Izquierdo",
                         showgrid=True,
                         zeroline=True,
                         titlefont=dict(family="Segoe UI", size=12)
                     ),
                     yaxis2=dict(
-                        title="Eje Y Derecho",
                         overlaying="y",
                         side="right",
                         showgrid=False,
