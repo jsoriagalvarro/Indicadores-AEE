@@ -77,7 +77,7 @@ if page == "Home":
         st.markdown("<h1 style='text-align: left;'>Mesa Económica - AEE</h1>", unsafe_allow_html=True)
 
     st.markdown("""
-    ## Bienvenido a la Mesa Económica - AEE
+    ## Bienvenido
     
     Esta aplicación está diseñada para proporcionar acceso interactivo a indicadores económicos 
     clave de diversos países. Puedes explorar datos históricos, personalizar gráficos, y descargar 
