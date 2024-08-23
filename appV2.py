@@ -74,8 +74,35 @@ if page == "Home":
     with col1:
         st.image(logo_path, width=80)
     with col2:
-        st.markdown("<h1 style='text-align: left;'>Interfaz - AEE</h1>", unsafe_allow_html=True)
-    st.write("Esta es la página de inicio de la aplicación donde puedes describir la funcionalidad de la app.")
+        st.markdown("<h1 style='text-align: left;'>Mesa Económica - AEE</h1>", unsafe_allow_html=True)
+
+    st.markdown("""
+    ## Bienvenido a la Mesa Económica - AEE
+    
+    Esta aplicación está diseñada para proporcionar acceso interactivo a indicadores económicos 
+    clave de diversos países. Puedes explorar datos históricos, personalizar gráficos, y descargar 
+    tanto los datos como las visualizaciones para un análisis más detallado.
+
+    ### Funcionalidades Principales:
+    - **Selección de Países:** Filtra y visualiza datos económicos por país.
+    - **Indicadores Personalizables:** Elige entre múltiples indicadores económicos para generar gráficos personalizados.
+    - **Opciones de Visualización:** Explora diferentes tipos de gráficos, incluyendo líneas, barras, y áreas apiladas.
+    - **Descargas Fáciles:** Exporta datos y gráficos en formato Excel y PNG para su uso fuera de la aplicación.
+
+    ### Cómo Usar la Aplicación:
+    1. Selecciona la opción "Mesa de trabajo Económica" en el menú lateral.
+    2. Escoge un país de interés.
+    3. Selecciona los indicadores que deseas analizar.
+    4. Personaliza el tipo de gráfico y otros parámetros.
+    5. Descarga los datos o la visualización si es necesario.
+
+    ### Soporte:
+    Si tienes alguna pregunta o necesitas asistencia, por favor contacta al equipo de soporte en [support@aee.com](mailto:support@aee.com).
+    
+    """)
+    
+    st.write("Explora los datos y descubre insights económicos clave de una manera interactiva y fácil de usar.")
+
 
 # Página Mesa de trabajo Económica
 if page == "Mesa de trabajo Económica":
