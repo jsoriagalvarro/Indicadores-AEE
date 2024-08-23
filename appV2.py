@@ -265,8 +265,6 @@ if page == "Mesa de trabajo Económica":
                         'yanchor': 'top',
                         'font': dict(size=24, family="Segoe UI")
                     },
-                    xaxis_title="Fecha",
-                    yaxis_title="Valor",
                     xaxis=dict(showgrid=False, titlefont=dict(family="Segoe UI", size=12)),
                     legend=dict(
                         font=dict(family="Segoe UI", size=10),
